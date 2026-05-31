@@ -222,6 +222,25 @@ export class ReviewRepository extends BaseRepository<Review> {
             .getAll();
     }
 
+    /** Persist extracted enrichment and clear the needsEnrichment flag. */
+    async saveEnrichment(
+        reviewId: string,
+        enrichment: NonNullable<Review['enrichment']>,
+    ): Promise<void> {
+        await this.update(reviewId, {
+            enrichment,
+            needsEnrichment: false,
+        } as Partial<Review>);
+    }
+
+    /** Reviews flagged for enrichment backfill. */
+    async findNeedingEnrichment(limit: number = 50): Promise<Review[]> {
+        return this.query()
+            .where('needsEnrichment', '==', true)
+            .limit(limit)
+            .getAll();
+    }
+
     /**
      * Update Salla review ID
      */

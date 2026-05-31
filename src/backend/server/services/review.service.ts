@@ -193,22 +193,42 @@ export class ReviewService {
         trustedBuyer: boolean;
         author: { displayName: string };
         images?: string[];
+        replies: { text: string; createdAt: number }[];
     }[]> {
         const reviews = isZidStoreUid(storeUid)
             ? await this.zidReviewRepo.findPublishedByStore(storeUid, options)
             : await this.reviewRepo.findPublishedByStore(storeUid, options);
 
-        return reviews.map(r => ({
-            id: r.id || r.reviewId || '',
-            productId: r.productId || null,
-            stars: r.stars,
-            text: r.text || '',
-            publishedAt: r.publishedAt || 0,
-            trustedBuyer: !!r.trustedBuyer,
-            author: { displayName: r.author?.displayName || 'عميل المتجر' },
-            images: Array.isArray((r as { images?: string[] }).images)
-                ? (r as { images?: string[] }).images
-                : undefined,
+        return Promise.all(reviews.map(async r => {
+            const reviewId = r.id || r.reviewId || '';
+            let replies: { text: string; createdAt: number }[] = [];
+            if (reviewId && (r as { lastRepliedAt?: number }).lastRepliedAt) {
+                const { dbAdmin } = await import('@/lib/firebaseAdmin');
+                const snap = await dbAdmin()
+                    .collection('reviews')
+                    .doc(reviewId)
+                    .collection('replies')
+                    .where('visibility', '==', 'public')
+                    .orderBy('createdAt', 'asc')
+                    .get();
+                replies = snap.docs.map(d => ({
+                    text: String(d.data().text || ''),
+                    createdAt: Number(d.data().createdAt || 0),
+                }));
+            }
+            return {
+                id: reviewId,
+                productId: r.productId || null,
+                stars: r.stars,
+                text: r.text || '',
+                publishedAt: r.publishedAt || 0,
+                trustedBuyer: !!r.trustedBuyer,
+                author: { displayName: r.author?.displayName || 'عميل المتجر' },
+                images: Array.isArray((r as { images?: string[] }).images)
+                    ? (r as { images?: string[] }).images
+                    : undefined,
+                replies,
+            };
         }));
     }
 

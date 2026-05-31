@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/run-backfill",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/enrich-reviews",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/refresh-consensus",
+      "schedule": "30 */6 * * *"
     }
   ]
 }

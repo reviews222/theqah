@@ -448,6 +448,43 @@
     document.head.appendChild(script);
   }
 
+  // ——— Render verified consensus paragraph ———
+  async function renderConsensus(storeUid, productId) {
+    try {
+      if (!storeUid || !productId) return;
+      // Avoid double-insertion on re-runs
+      if (document.querySelector('.theqah-consensus')) return;
+
+      const url = `${SCRIPT_ORIGIN}/api/public/consensus?storeUid=${encodeURIComponent(storeUid)}&productId=${encodeURIComponent(productId)}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const c = data && data.consensus;
+      if (!c || !c.text) return;
+
+      const host = ensureHostUnderProduct();
+      if (!host) return;
+      if (host.querySelector('.theqah-consensus')) return;
+
+      const box = document.createElement('div');
+      box.className = 'theqah-consensus';
+      box.setAttribute('dir', 'rtl');
+      box.style.cssText = 'margin:12px 0;padding:12px 14px;border-radius:10px;'
+        + 'background:#f6f9f6;border:1px solid #e2efe2;font-size:14px;line-height:1.7;color:#1f3d2b;';
+      const label = document.createElement('div');
+      label.style.cssText = 'font-weight:700;margin-bottom:4px;color:#137a3a;';
+      label.textContent = 'خلاصة مشتري موثق';
+      const body = document.createElement('p');
+      body.style.cssText = 'margin:0;';
+      body.textContent = c.text; // visible text only — set via textContent (never innerHTML), NOT injected as Review schema
+      box.appendChild(label);
+      box.appendChild(body);
+      host.insertBefore(box, host.firstChild);
+    } catch (e) {
+      /* consensus is non-critical: never disrupt the widget */
+    }
+  }
+
   // ——— Fetch and add logos helper ———
   async function fetchAndAddLogos(storeUid) {
     try {
@@ -487,6 +524,8 @@
             }
           }, delay);
         });
+
+        renderConsensus(storeUid, productId);
       }
     } catch { /* silent */ }
   }

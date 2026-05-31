@@ -253,6 +253,7 @@ export class SallaWebhookService {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             needsSallaId: true,
+            needsEnrichment: true,
         };
 
         // Add moderation info if flagged
@@ -269,6 +270,7 @@ export class SallaWebhookService {
         // Trigger background job to fetch sallaReviewId (fire-and-forget)
         if (options?.appUrl && options?.cronSecret) {
             this.triggerBackgroundJob(docId, merchantId, orderId, options.appUrl, options.cronSecret);
+            this.triggerEnrichmentJob(docId, options.appUrl, options.cronSecret);
         }
 
         return { saved: true, docId, status: reviewStatus, flagged: needsManualReview };
@@ -304,6 +306,15 @@ export class SallaWebhookService {
         });
     }
 
+
+    /** Fire-and-forget enrichment job trigger. Non-blocking; cron backfill is the safety net. */
+    private triggerEnrichmentJob(docId: string, appUrl: string, cronSecret: string): void {
+        fetch(`${appUrl}/api/jobs/enrich-review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cronSecret}` },
+            body: JSON.stringify({ reviewDocId: docId }),
+        }).catch((err) => console.error('[SallaWebhookService] enrichment trigger failed:', err));
+    }
 
     /**
      * Backfill Salla review ID (called by cron)

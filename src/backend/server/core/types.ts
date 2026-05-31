@@ -56,6 +56,14 @@ export interface Review extends EntityBase {
         flags: string[];
         checkedAt: number;
     };
+    enrichment?: {
+        aspects: Array<{ name: string; sentiment: 'positive' | 'neutral' | 'negative'; quote?: string }>;
+        topics: string[];
+        sentiment: 'positive' | 'neutral' | 'negative';
+        model: string;
+        extractedAt: number;
+    };
+    needsEnrichment?: boolean;
 }
 
 /** Store entity */
